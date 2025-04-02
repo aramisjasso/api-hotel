@@ -1,10 +1,10 @@
 import express from 'express';
 import HotelController from '../controllers/hotel.controller';
 
-const router = express.Router();
-//Crud de categories
-router.post('/',HotelController.createCategory);
+router.get("/", HotelController.getAllHotels);
+router.get("/:id", HotelController.getHotelById);
+router.post("/", HotelController.createHotel);
+router.put("/:id", HotelController.updateHotel);
 
 
-
-export default router;
+module.exports = router;
