@@ -24,18 +24,26 @@ exports.getAllHotels = async (req, res) => {
 
   exports.getHotelById = async (req, res) => {
     try {
-      const docRef = doc(hotelsCollection, req.params.id); // Cambiado a doc(hotelsCollection, id)
+      const { id } = req.params;
+  
+      // Validar que el ID sea válido
+      if (!id || typeof id !== 'string' || id.trim() === '') {
+        return res.status(400).json({ error: 'El identificador proporcionado no es válido' });
+      }
+  
+      const docRef = doc(hotelsCollection, id);
       const hotelDoc = await getDoc(docRef);
   
       if (!hotelDoc.exists()) {
-        return res.status(404).json({ message: "Hotel no encontrado" });
+        return res.status(404).json({ error: 'Hotel no encontrado' });
       }
   
       res.status(200).json({ id: hotelDoc.id, ...hotelDoc.data() });
     } catch (error) {
-      res.status(500).json({ message: "Error al obtener hotel", error });
+      res.status(500).json({ error: 'Error al obtener el hotel', details: error.message });
     }
   };
+
   exports.createHotel = async (req, res) => {
     try {
       const { 
@@ -123,18 +131,26 @@ exports.getAllHotels = async (req, res) => {
 
 exports.updateHotel = async (req, res) => {
   try {
-    const { id } = req.params; // ID del hotel a actualizar
+    const { id } = req.params;
     const { name, description, direccion, email, phoneNumber, features, stars } = req.body;
 
     const docRef = doc(hotelsCollection, id);
     const docSnap = await getDoc(docRef);
 
-    // Verificar si el hotel existe
     if (!docSnap.exists()) {
       return res.status(404).json({ error: 'Hotel no encontrado' });
     }
 
-    const fechaActualizacion = new Date();
+    // Validaciones de datos
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'El formato del correo electrónico no es válido' });
+    }
+
+    if (phoneNumber && !/^\+?[0-9\s\-]+$/.test(phoneNumber)) {
+      return res.status(400).json({ error: 'El formato del número de teléfono no es válido' });
+    }
+
+    const fechaActualizacion = new Date().toISOString();
     const updatedData = {
       ...(name && { name }),
       ...(description && { description }),
@@ -143,50 +159,46 @@ exports.updateHotel = async (req, res) => {
       ...(phoneNumber && { phoneNumber }),
       ...(features && { features }),
       ...(stars && { stars }),
-      fechaActualizacion,
+      updatedAt: fechaActualizacion,
     };
 
     await updateDoc(docRef, updatedData);
 
     res.status(200).json({ message: 'Hotel actualizado correctamente', updatedData });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Error al actualizar el hotel', details: error.message });
   }
 };
 
 exports.deleteHotel = async (req, res) => {
   try {
-    const { id } = req.params; // ID del hotel
+    const { id } = req.params;
 
-    // Referencia al documento del hotel
     const docRef = doc(hotelsCollection, id);
     const docSnap = await getDoc(docRef);
 
-    // Verificar si el hotel existe
     if (!docSnap.exists()) {
       return res.status(404).json({ error: 'Hotel no encontrado' });
     }
+
     const hotelData = docSnap.data();
 
-    // Verificar si el hotel tiene habitaciones
     if (hotelData.habitaciones && Array.isArray(hotelData.habitaciones)) {
-      // Verificar reservaciones
       const verificacion = hotelData.habitaciones.some(
         (room) => room.estado === 'ocupada' || room.estado === 'reservada'
       );
 
       if (verificacion) {
-        return res.status(400).json({
+        return res.status(409).json({
           error: 'No se puede eliminar el hotel porque tiene habitaciones ocupadas o reservadas.',
         });
       }
     }
 
-    // Eliminar el documento
     await deleteDoc(docRef);
-    res.status(200).json({ message: 'Hotel eliminado correctamente' });
+    res.status(204).send(); // 204 No Content
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Error al eliminar el hotel', details: error.message });
   }
 };
 
