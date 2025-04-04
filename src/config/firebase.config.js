@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
-const { getFirestore } = require('firebase/firestore');
-import config from './config';
+import { getFirestore } from 'firebase/firestore'; // Cambia require por import
+import config from './config.js';
+console.log('Variables de entorno cargadas:', config);
 
 console.log('Configuración de Firebase:', config); // Verifica que las credenciales se carguen correctamente
 

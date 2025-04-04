@@ -1,44 +1,73 @@
-const { db } = require('../../../config/firebase.config');
-const { collection } = require('firebase/firestore');
+import { db } from '../../../config/firebase.config.js';
+import { collection } from 'firebase/firestore';
+
+// Aseguramos que 'db' sea válido para pasar a 'collection'
+const hotelsCollection = collection(db, 'hotels');
+
 class Hotel {
-  constructor(id, name, description, image, background ,order) {
+  constructor(
+    id,
+    name,
+    description,
+    direction, // ✅ Corregido: nombre consistente
+    email,
+    phoneNumber,
+    features,
+    stars,
+    habitaciones = [],
+    resenas = [],
+    createdAt = new Date(),
+    updatedAt = new Date()
+  ) {
     this.id = id;
     this.name = name;
     this.description = description;
-    this.image = image;
-    this.background = background;
-    this.order = order;
-    this.createdAt = new Date();
+    this.direction = direction; // ✅ Corregido: antes tenía un error tipográfico
+    this.email = email;
+    this.phoneNumber = phoneNumber;
+    this.features = features;
+    this.stars = stars;
+    this.habitaciones = habitaciones;
+    this.resenas = resenas;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
   }
 
-  // Método para convertir a objeto plano para Firestore
+  // Convierte el objeto a formato Firestore
   toFirestore() {
     return {
       name: this.name,
       description: this.description,
-      image: this.image,
-      background: this.background,
-      order: this.order,
-      createdAt: this.createdAt
+      direction: this.direction,
+      email: this.email,
+      phoneNumber: this.phoneNumber,
+      features: this.features,
+      stars: this.stars,
+      habitaciones: this.habitaciones,
+      resenas: this.resenas,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
     };
   }
 
-  // Método estático para crear desde Firestore
+  // Crea una instancia desde Firestore
   static fromFirestore(doc) {
     const data = doc.data();
-    return new Category(
+    return new Hotel(
       doc.id,
       data.name,
       data.description,
-      data.image,
-      data.background,
-      data.order
+      data.direction,
+      data.email,
+      data.phoneNumber,
+      data.features,
+      data.stars,
+      data.habitaciones || [],
+      data.resenas || [],
+      data.createdAt ? new Date(data.createdAt) : new Date(),
+      data.updatedAt ? new Date(data.updatedAt) : new Date()
     );
   }
 }
 
-// Exportamos tanto la clase como la referencia a la colección
-module.exports = {
-  Hotel,
-  hotelsColection: db ? collection(db, 'hotels') : null
-};
+export { Hotel, hotelsCollection };
