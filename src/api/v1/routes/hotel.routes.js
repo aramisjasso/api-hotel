@@ -6,5 +6,4 @@ router.get("/:id", HotelController.getHotelById);
 router.post("/", HotelController.createHotel);
 router.put("/:id", HotelController.updateHotel);
 
-
 module.exports = router;
