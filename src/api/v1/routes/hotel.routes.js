@@ -10,4 +10,8 @@ router.post("/", HotelController.createHotel);
 router.put("/:id", HotelController.updateHotel);
 router.delete("/:id", HotelController.deleteHotel); // Agrega la ruta DELETE si es necesaria
 
+<<<<<<< HEAD
 export default router; // Exporta el router correctamente
+=======
+module.exports = router;
+>>>>>>> ae0745ad9059ecc01f53901de9c8996116b21f85
