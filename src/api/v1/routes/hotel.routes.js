@@ -1,5 +1,6 @@
 import express from 'express';
 import HotelController from '../controllers/hotel.controller.js';
+import { addRoom, listRooms, getRoomDetails, updateRoom, deleteRoom } from '../controllers/room.controller.js';
 
 const router = express.Router(); // Crea una instancia del Router
 
@@ -10,8 +11,10 @@ router.post("/", HotelController.createHotel);
 router.put("/:id", HotelController.updateHotel);
 router.delete("/:id", HotelController.deleteHotel); // Agrega la ruta DELETE si es necesaria
 
-<<<<<<< HEAD
+router.get('/:id/rooms/', listRooms);
+router.get('/:id/rooms/:roomId', getRoomDetails);
+router.post('/:id/rooms/', addRoom);
+router.put('/:id/rooms/:roomId', updateRoom);
+router.delete('/:id/rooms/:roomId', deleteRoom);
+
 export default router; // Exporta el router correctamente
-=======
-module.exports = router;
->>>>>>> ae0745ad9059ecc01f53901de9c8996116b21f85

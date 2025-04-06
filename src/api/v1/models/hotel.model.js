@@ -1,5 +1,6 @@
 import { db } from '../../../config/firebase.config.js';
 import { collection } from 'firebase/firestore';
+import { Room } from './room.model.js';
 
 // Aseguramos que 'db' sea válido para pasar a 'collection'
 const hotelsCollection = collection(db, 'hotels');
@@ -67,6 +68,42 @@ class Hotel {
       data.createdAt ? new Date(data.createdAt) : new Date(),
       data.updatedAt ? new Date(data.updatedAt) : new Date()
     );
+  }
+
+  // Añadir habitación al array
+  addRoom(room) { 
+    this.habitaciones.push(room.toFirestore());
+    this.updatedAt = new Date();
+  }
+
+  // Obtener una habitación por roomId
+  getRoom(roomId) {
+    const roomData = this.habitaciones.find((room) => room.roomId === roomId);
+    return roomData ? Room.fromFirestore(roomData) : null;
+  }
+
+  // Actualizar una habitación
+  updateRoom(roomId, updatedRoomData) {
+    const roomIndex = this.habitaciones.findIndex(room => room.roomId === roomId);
+    if (roomIndex === -1) return false;
+  
+    this.habitaciones[roomIndex] = {
+      ...this.habitaciones[roomIndex], // Mantiene datos existentes
+      ...updatedRoomData,             // Aplica actualizaciones
+    };
+    
+    return true;
+  }
+
+  // Eliminar una habitación
+  deleteRoom(roomId) {
+    const initialLength = this.habitaciones.length;
+    this.habitaciones = this.habitaciones.filter((room) => room.roomId !== roomId);
+    if (this.habitaciones.length < initialLength) {
+      this.updatedAt = new Date();
+      return true;
+    }
+    return false;
   }
 }
 

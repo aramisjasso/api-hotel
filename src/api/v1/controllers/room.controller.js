@@ -1,201 +1,188 @@
-const { 
-    doc, 
-    setDoc, 
-    getDoc, 
-    updateDoc, 
-    deleteDoc, 
-    collection,
-    query,
-    where,
-    getDocs
-  } = require('firebase/firestore');
-  const { db } = require('../../../config/firebase.config');
-  
-  // Agregar Habitación a un Hotel
-  exports.addRoom = async (req, res) => {
-    try {
-      const { hotelId } = req.params;
-      const roomData = req.body;
-      
-      // Validaciones básicas
-      if (!roomData.numero || !roomData.tipo || !roomData.precio) {
-        return res.status(400).json({ error: 'Número, tipo y precio son requeridos' });
-      }
+// controllers/roomController.js
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { Hotel, hotelsCollection } from '../models/hotel.model.js';
+import { Room } from '../models/room.model.js';
 
-    // Verificar si el hotel existe
-    const hotelRef = doc(db, 'hotels', hotelId);
-    const hotelSnap = await getDoc(hotelRef);
-    
-    if (!hotelSnap.exists()) {
-      return res.status(404).json({ error: 'Hotel no encontrado' });
-    }
+// POST /hotels/:id/rooms
+export const addRoom = async (req, res) => {
+  const { id } = req.params;
+  const roomData = req.body;
 
-    // Verificar si ya existe una habitación con el mismo número
-    const roomsRef = collection(db, `hotels/${hotelId}/rooms`);
-    const q = query(roomsRef, where('numero', '==', roomData.numero));
-    const querySnapshot = await getDocs(q);
-    
-    if (!querySnapshot.empty) {
-      return res.status(409).json({ error: 'Ya existe una habitación con este número' });
-    }
-
-    // Generar ID único para la habitación
-    const roomId = `ROOM${Math.floor(10000 + Math.random() * 90000)}`;
-    const fechaCreacion = new Date().toISOString();
-    
-    const newRoom = {
-      roomId,
-      hotelId,
-      ...roomData,
-      estado: 'disponible',
-      fechaCreacion,
-      ultimaActualizacion: fechaCreacion
-    };
-
-    await setDoc(doc(roomsRef, roomId), newRoom);
-    
-    res.status(201).json(newRoom);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  // Validación básica
+  if (!roomData.numero || !roomData.tipo || !roomData.precio) {
+    return res.status(400).json({ error: 'Datos incompletos: número, tipo y precio son obligatorios' });
   }
-};
 
-// Listar habitaciones de un Hotel
-exports.listRooms = async (req, res) => {
   try {
-    const { hotelId } = req.params;
-    
-    // Verificar si el hotel existe
-    const hotelRef = doc(db, 'hotels', hotelId);
+    const hotelRef = doc(hotelsCollection, id);
     const hotelSnap = await getDoc(hotelRef);
-    
+
     if (!hotelSnap.exists()) {
       return res.status(404).json({ error: 'Hotel no encontrado' });
     }
 
-    const roomsRef = collection(db, `hotels/${hotelId}/rooms`);
-    const snapshot = await getDocs(roomsRef);
-    
-    const rooms = snapshot.docs.map(doc => doc.data());
-    
-    res.status(200).json(rooms);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+    const hotel = Hotel.fromFirestore(hotelSnap);
 
-// Obtener detalles de una habitación
-exports.getRoomDetails = async (req, res) => {
-  try {
-    const { hotelId, roomId } = req.params;
-    
-    // Validar IDs
-    if (!hotelId || !roomId) {
-      return res.status(400).json({ error: 'IDs de hotel y habitación requeridos' });
+    // Verificar si el número de habitación ya existe
+    const roomExists = hotel.habitaciones.some(room => room.numero === roomData.numero);
+    if (roomExists) {
+      return res.status(409).json({ error: 'El número de habitación ya está en uso' });
     }
 
-    // Verificar si el hotel existe
-    const hotelRef = doc(db, 'hotels', hotelId);
-    const hotelSnap = await getDoc(hotelRef);
-    
-    if (!hotelSnap.exists()) {
-      return res.status(404).json({ error: 'Hotel no encontrado' });
-    }
+    // Crear y agregar la habitación
+    const newRoom = new Room(
+      `ROOM${Math.floor(100000 + Math.random() * 900000)}`, // ID de 6 dígitos
+      id,
+      roomData.numero,
+      roomData.tipo,
+      roomData.precio,
+      roomData.descripcion || '',
+      roomData.estado || 'disponible',
+      roomData.amenidades || [],
+      new Date().toISOString(), // fechaCreacion en ISO
+      new Date().toISOString()  // ultimaActualizacion en ISO
+    );
 
-    const roomRef = doc(db, `hotels/${hotelId}/rooms`, roomId);
-    const roomSnap = await getDoc(roomRef);
-    
-    if (!roomSnap.exists()) {
-      return res.status(404).json({ error: 'Habitación no encontrada' });
-    }
-    
-    res.status(200).json(roomSnap.data());
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+    hotel.addRoom(newRoom);
+    await updateDoc(hotelRef, {
+      habitaciones: hotel.habitaciones,
+      updatedAt: new Date().toISOString(), // Actualiza la fecha del hotel en ISO
+    });
 
-// Actualizar Información de una habitación
-exports.updateRoom = async (req, res) => {
-  try {
-    const { hotelId, roomId } = req.params;
-    const updateData = req.body;
-    
-    // Validar IDs
-    if (!hotelId || !roomId) {
-      return res.status(400).json({ error: 'IDs de hotel y habitación requeridos' });
-    }
-
-    // Verificar si el hotel existe
-    const hotelRef = doc(db, 'hotels', hotelId);
-    const hotelSnap = await getDoc(hotelRef);
-    
-    if (!hotelSnap.exists()) {
-      return res.status(404).json({ error: 'Hotel no encontrado' });
-    }
-
-    const roomRef = doc(db, `hotels/${hotelId}/rooms`, roomId);
-    const roomSnap = await getDoc(roomRef);
-    
-    if (!roomSnap.exists()) {
-      return res.status(404).json({ error: 'Habitación no encontrada' });
-    }
-
-    // Preparar datos para actualizar
-    const updatedData = {
-      ...updateData,
-      ultimaActualizacion: new Date().toISOString()
-    };
-
-    await updateDoc(roomRef, updatedData);
-    
-    res.status(200).json({ 
-      message: 'Habitación actualizada correctamente',
-      room: { ...roomSnap.data(), ...updatedData }
+    // Respuesta con fechas en ISO
+    const response = newRoom.toFirestore();
+    res.status(201).json({
+      ...response,
+      fechaCreacion: new Date(response.fechaCreacion).toISOString(),
+      ultimaActualizacion: new Date(response.ultimaActualizacion).toISOString(),
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(400).json({ error: error.message });
   }
 };
 
-// Eliminar una habitación
-exports.deleteRoom = async (req, res) => {
-  try {
-    const { hotelId, roomId } = req.params;
-    
-    // Validar IDs
-    if (!hotelId || !roomId) {
-      return res.status(400).json({ error: 'IDs de hotel y habitación requeridos' });
-    }
+// GET /hotels/:id/rooms
+export const listRooms = async (req, res) => {
+  const { id } = req.params;
 
-    // Verificar si el hotel existe
-    const hotelRef = doc(db, 'hotels', hotelId);
-    const hotelSnap = await getDoc(hotelRef);
-    
+  try {
+    const hotelSnap = await getDoc(doc(hotelsCollection, id));
     if (!hotelSnap.exists()) {
       return res.status(404).json({ error: 'Hotel no encontrado' });
     }
 
-    const roomRef = doc(db, `hotels/${hotelId}/rooms`, roomId);
-    const roomSnap = await getDoc(roomRef);
-    
-    if (!roomSnap.exists()) {
+    const hotel = Hotel.fromFirestore(hotelSnap);
+    res.status(200).json(hotel.habitaciones);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// GET /hotels/:id/rooms/:roomId
+export const getRoomDetails = async (req, res) => {
+  const { id, roomId } = req.params;
+
+  try {
+    const hotelSnap = await getDoc(doc(hotelsCollection, id));
+    if (!hotelSnap.exists()) {
+      return res.status(404).json({ error: 'Hotel no encontrado' });
+    }
+
+    const hotel = Hotel.fromFirestore(hotelSnap);
+    const room = hotel.getRoom(roomId);
+
+    if (!room) {
       return res.status(404).json({ error: 'Habitación no encontrada' });
     }
 
-    const roomData = roomSnap.data();
-    
-    // Verificar si la habitación está ocupada o reservada
-    if (roomData.estado === 'ocupada' || roomData.estado === 'reservada') {
+    res.status(200).json(room.toFirestore());
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// PUT /hotels/:id/rooms/:roomId
+export const updateRoom = async (req, res) => {
+  const { id, roomId } = req.params;
+  const updateData = req.body;
+
+  try {
+    const hotelRef = doc(hotelsCollection, id);
+    const hotelSnap = await getDoc(hotelRef);
+
+    if (!hotelSnap.exists()) {
+      return res.status(404).json({ error: 'Hotel no encontrado' });
+    }
+
+    const hotel = Hotel.fromFirestore(hotelSnap);
+    const room = hotel.getRoom(roomId);
+
+    if (!room) {
+      return res.status(404).json({ error: 'Habitación no encontrada' });
+    }
+
+    // Actualizar solo campos permitidos y fechas en ISO
+    const updatedRoom = {
+      ...room.toFirestore(),
+      ...updateData,
+      ultimaActualizacion: new Date().toISOString(), // Fecha actual en ISO
+    };
+
+    const success = hotel.updateRoom(roomId, updatedRoom);
+    if (!success) {
+      return res.status(400).json({ error: 'Error al actualizar la habitación' });
+    }
+
+    await updateDoc(hotelRef, {
+      habitaciones: hotel.habitaciones,
+      updatedAt: new Date().toISOString(), // Fecha del hotel en ISO
+    });
+
+    // Respuesta con fechas en ISO
+    const response = hotel.getRoom(roomId).toFirestore();
+    res.status(200).json({
+      ...response,
+      fechaCreacion: new Date(response.fechaCreacion).toISOString(),
+      ultimaActualizacion: new Date(response.ultimaActualizacion).toISOString(),
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// DELETE /hotels/:id/rooms/:roomId
+export const deleteRoom = async (req, res) => {
+  const { id, roomId } = req.params;
+
+  try {
+    const hotelRef = doc(hotelsCollection, id);
+    const hotelSnap = await getDoc(hotelRef);
+
+    if (!hotelSnap.exists()) {
+      return res.status(404).json({ error: 'Hotel no encontrado' });
+    }
+
+    const hotel = Hotel.fromFirestore(hotelSnap);
+
+    // Validar si hay reservas activas (aquí iría tu lógica de reservas)
+    if (hotel.getRoom(roomId).estado === 'Reservada') {
       return res.status(409).json({ 
-        error: 'No se puede eliminar la habitación porque tiene reservas activas' 
+        error: 'No se puede eliminar: la habitación tiene reservas activas (estado: Reservada)'
       });
     }
 
-    await deleteDoc(roomRef);
-    
+    const success = hotel.deleteRoom(roomId);
+    if (!success) {
+      return res.status(404).json({ error: 'Habitación no encontrada' });
+    }
+
+    await updateDoc(hotelRef, {
+      habitaciones: hotel.habitaciones,
+      updatedAt: hotel.updatedAt,
+    });
+
     res.status(204).end();
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(400).json({ error: error.message });
   }
 };
