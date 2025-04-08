@@ -2,6 +2,7 @@ import express from 'express';
 import HotelController from '../controllers/hotel.controller.js';
 import { searchHotels, checkRoomAvailability} from '../controllers/special.controller.js'
 import { addRoom, listRooms, getRoomDetails, updateRoom, deleteRoom } from '../controllers/room.controller.js';
+import { getReviewsByHotelId, createReview } from '../controllers/review.controller.js';
 
 const router = express.Router(); // Crea una instancia del Router
 
@@ -20,6 +21,7 @@ router.post('/:id/rooms/', addRoom);
 router.put('/:id/rooms/:roomId', updateRoom);
 router.delete('/:id/rooms/:roomId', deleteRoom);
 
-
+router.get('/:hotelId/reviews', getReviewsByHotelId);
+router.post('/:hotelId/reviews', createReview);
 
 export default router; // Exporta el router correctamente
