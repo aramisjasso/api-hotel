@@ -8,7 +8,7 @@ class Room {
       precio,
       descripcion,
       estado = "disponible",
-      reserva,
+      reserva = [],
       amenidades = [],
       fechaCreacion = new Date(),
       ultimaActualizacion = new Date()
