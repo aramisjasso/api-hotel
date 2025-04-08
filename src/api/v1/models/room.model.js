@@ -53,8 +53,8 @@ class Room {
         data.precio,
         data.descripcion,
         data.estado,
-        data.amenidades,
         data.reserva,
+        data.amenidades,
         data.fechaCreacion,
         data.ultimaActualizacion
       );
