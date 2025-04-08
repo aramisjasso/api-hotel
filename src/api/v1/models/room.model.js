@@ -8,6 +8,7 @@ class Room {
       precio,
       descripcion,
       estado = "disponible",
+      reserva,
       amenidades = [],
       fechaCreacion = new Date(),
       ultimaActualizacion = new Date()
@@ -19,6 +20,7 @@ class Room {
       this.precio = precio;
       this.descripcion = descripcion;
       this.estado = estado;
+      this.reserva = reserva;
       this.amenidades = amenidades;
       this.fechaCreacion = fechaCreacion;
       this.ultimaActualizacion = ultimaActualizacion;
@@ -34,6 +36,7 @@ class Room {
         precio: this.precio,
         descripcion: this.descripcion,
         estado: this.estado,
+        reserva: this.reserva,
         amenidades: this.amenidades,
         fechaCreacion: this.fechaCreacion,
         ultimaActualizacion: this.ultimaActualizacion
@@ -51,6 +54,7 @@ class Room {
         data.descripcion,
         data.estado,
         data.amenidades,
+        data.reserva,
         data.fechaCreacion,
         data.ultimaActualizacion
       );

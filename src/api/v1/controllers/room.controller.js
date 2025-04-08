@@ -39,6 +39,7 @@ export const addRoom = async (req, res) => {
       roomData.descripcion || '',
       roomData.estado || 'disponible',
       roomData.amenidades || [],
+      roomData.reserva || [],
       new Date().toISOString(), // fechaCreacion en ISO
       new Date().toISOString()  // ultimaActualizacion en ISO
     );
